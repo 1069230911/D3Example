@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <svg id="mgSvg" width="1200" height="600"></svg>
+
+        <script>
+            const data = [
+                {name: 'me', value: 20},
+                {name: 'Zhang san', value: 150},
+                {name: 'Li shi', value: 100},
+                {name: 'Wang wu', value: 200},
+                {name: 'Zhou heng', value: 10},
+                {name: 'Zhou heng2', value: 30},
+                {name: 'Zhou heng3', value: 110},
+                {name: 'Zhou heng4', value: 300},
+            ]
+            const data2 = [
+                {name: 'me', value: 20},
+                {name: 'Zhang san', value: 150},
+                {name: 'Li shi', value: 100},
+                {name: 'Wang wu', value: 200},
+                {name: 'Zhou heng', value: 10},
+                {name: 'Zhou heng2', value: 30},
+                {name: 'Zhou heng3', value: 110},
+                {name: 'Zhou heng4', value: 300},
+                {name: 'Zhou', value: 300},
+                {name: 'Zhou3', value: 300},
+            ]
+            const margin = {top: 30, right: 30, bottom: 50, left: 100};
+
+            const svg = d3.select('body #mgSvg');
+            const g = svg.append('g').attr('transform', `translate(${margin.left}, ${margin.top})`)
+                                     .attr('id', 'mainGroup');
+            const svgHeight = +svg.attr('height');
+            const svgWidth = +svg.attr('width');
+
+            const innerHeight = svgHeight - margin.top - margin.bottom;
+            const innerWidth = svgWidth - margin.left - margin.right;
+            // 坐标轴
+            const xScale = d3.scaleLinear()
+                            .domain([0, d3.max(data, d => d.value)])
+                            .range([0, innerWidth]);
+            const yScale = d3.scaleBand()
+                            .domain(data.map(d => d.name))
+                            .range([0, innerHeight])
+                            .padding(.1);
+
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale);
+                            // .tickPadding(20) //文本之间的间距
+                            // .tickSize(-innerWidth); // 刻度长度（正负数为正反方向）
+
+            g.append('g').call(xAxis).attr('transform', `translate(0, ${innerHeight})`).attr('id', 'xAxis');
+            g.append('g').call(yAxis).attr('id', 'yAxis');
+            
+            // 填充数据
+            g.append('g')
+             .selectAll('.dataRect')
+             .data(data) // 没有图元的时候不需要 第二个参数为key值 默认为数组下表，和vue中key类似
+             .enter()  // 
+             .append('rect')
+             .transition()
+             .duration(1000)
+
+            //  .attr('height', yScale.bandwidth())
+            //  .attr('width', 30)
+            //  .attr('x', (d, i) => yScale(d.name))
+            //  .attr('y', innerHeight)
+
+             .attr('height', yScale.bandwidth())
+             .attr('width', (d, i) => xScale(d.value))
+             .attr('y', (d, i) => yScale(d.name))
+             .attr('fill', 'green');
+            
+            // setTimeout(() => {
+            //    g.selectAll('.dataRect')
+            //     .data(data2, data => data.name) // 第二个参数为key值 默认为数组下表，和vue中key类似
+            //     .exit()
+            //     .remove()  
+            //     .append('rect')
+            //     .attr('height', yScale.bandwidth())
+            //     .attr('width', (d, i) => xScale(d.value))
+            //     .attr('y', (d, i) => yScale(d.name))
+            //     .attr('fill', 'green');
+            // }, 5000)
+
+            //  设置坐标轴样式
+            d3.selectAll('#mainGroup #yAxis .tick text')
+              .attr('font-size', '12');
+              
+            // 设置标题
+            g.append('text')
+             .text('Bar')
+             .attr('font-size', '17px')
+             .attr('transform', `translate(${innerWidth / 2}, 0)`)
+             .attr('text-anchor', 'middle');
+        </script>
+    </body>
+</html>

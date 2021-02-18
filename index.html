@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <body>
+        <div id="d3Node" class="d3Node">
+            <svg>
+                
+            </svg>
+        </div>
+        <script>
+            console.log(d3);
+            const node = d3.select('#d3Node');
+            // const str = 'Chinese';
+            // node.datum(str)
+            //     .text((d, i) => {
+            //         return `我是D：${d}，我是i: ${i}`;
+            //     })
+
+                //  ------------------------------ 柱状图 DEMO
+            // const dataSet = [20, 50, 10, 100, 70];
+            // const valueHeight = 20;
+            // const svgNode = d3.select('svg')
+            //     .attr('width', '300px')
+            //     .attr('height', '300px');
+            // svgNode.selectAll('react')
+            //        .data(dataSet)
+            //        .enter()
+            //        .append('rect')
+            //          .attr('x', 20)
+            //          .attr('y', (d, i) => i * valueHeight)
+            //          .attr('height', (d, i) => valueHeight - 2)
+            //          .attr('width', (d, i) => d)
+            //          .attr('fill', 'steelblue');
+
+            // ------------------------ 比例尺
+            
+            const dataSet = [1, 3.2, 5.5, 1.3, 2.1];
+            const max = d3.max(dataSet);
+            const min = d3.min(dataSet);
+            const linear = d3.scaleLinear()
+                             .domain([min, max])
+                             .range([0, 300]);
+            const ordinal = d3.scaleOrdinal()
+                              .domain([1, 3.2, 5.5, 1.3, 2.1])
+                              .range(['red', 'green', 'blue']);
+            const valueHeight = 20;
+            const svgNode = d3.select('svg')
+                              .attr('width', '300px')
+                              .attr('height', '300px');
+                              
+            svgNode.selectAll('react')
+                   .data(dataSet)
+                   .enter()
+                   .append('rect')
+                     .attr('x', 30)
+                     .attr('y', (d, i) => i * valueHeight)
+                     .attr('height', (d, i) => valueHeight - 2)
+                     .attr('width', (d, i) => linear(d))
+                     .attr('fill', (d, i) => ordinal(d));
+
+            svgNode.append('g')
+                   .call(g => {
+                      return g.attr('transform',`translate(30 , 30)`)
+                              .call(d3.axisLeft(linear))
+                   })
+                   .append('g')
+                   .call(g => {
+                      return g.attr·('transform',`translate(30 , 0)`)
+                              .call(d3.axisBottom(linear))
+                   })
+        </script>
+
+
+        <style>
+            .d3Node{
+                width: 500px;
+                height: 500px;
+            }
+        </style>
+    </body>
+</html>
+
+<!-- 
+    D3 核心 selection 选择集 select、selectAll
+        enter() : 根据数据的多少动态添加节点， 会提前占位，后续再动态添加节点
+        exit(): 数据过少的时候动态删除节点
+        update(): 默认
+
+
+        data().join() 是集成前三种情况的 但是不够灵活，join里面包含3个参数 也就是上面对应的3中状态
+
+        坐标轴： X 方向是向右；Y 方向是向下
+                 设置的x，和 y 都是相对于
+        比例尺：线性比例尺 --- scaleLinear() 针对一堆连续的数据
+               离散比例尺 --- scaleOrdinal() 不完全对应数字了(有点类似于数组下表映射关系哪种，比如 [1, 2] ['red', 'blue'])  没匹配到就是最后一个
+        坐标轴：axisBottom() --- 
+
+        里面的call函数 其实就和js里面是一样的道理，返回来的是当前节点 --- 感觉这样写是为了更方便的拆分代码用的
+    
+        nace() 坐标轴横线转换成整数
+        data 可以设置为函数
+
+        动画 transition() . duration(time) --- 必须在数据类型已经被append进去后才能设置
+
+    核心 链式调用
+    第一感觉就是 对DOM的操作，只是对获取DOM的过程 和 数据 映射过程 进行了二次封装；还有对于数据的格式处理
+
+
+    坐标轴拆成一个功能模块
+
+    文档： shape 中包含了 折线图、饼图等
+
+    SVG 类型 path 待看
+ -->

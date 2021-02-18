@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <svg id="mySvg" width="1200" height="600"></svg>
+        <script src="https://d3js.org/d3.v5.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-tip/0.7.1/d3-tip.min.js"></script>
+        <script>
+            const data = [
+                {name: 'Yong qiang', value: 120},
+                {name: 'Zhang san', value: 150},
+                {name: 'Li shi', value: 100},
+                {name: 'Wang wu', value: 200},
+                {name: 'Zhou heng', value: 10},
+                {name: 'Hu hao', value: 30},
+                {name: 'Sun zixia', value: 110},
+                {name: 'Liu ying', value: 300},
+            ]
+            const svg = d3.select('body #mySvg');
+            const margin = {top: 30, right: 30, bottom: 50, left: 100};
+            const svgHeight = +svg.attr('height');
+            const svgWidth = +svg.attr('width');
+            const innerWidth = svgWidth - margin.left - margin.right;
+            const innerHeight = svgHeight - margin.top - margin.bottom;
+            const g = svg.append('g')
+                         .attr('transform', `translate(${margin.left}, ${margin.top})`)
+                         .attr('id', 'mainGroup');
+            
+            //  比例尺
+            const yScale = d3.scaleLinear()
+                             .domain([0, d3.max(data, d => d.value)].reverse())  // TODO 注意D3的坐标轴方向问题
+                             .range([0, innerHeight]);  // 值越大 转换成真实值越小
+            const xScale = d3.scaleBand()
+                             .domain(data.map(d => d.name))
+                             .range([0, innerWidth])
+                             .padding(.1);
+
+            // 添加坐标轴
+            const xAxis = d3.axisBottom(xScale);
+            const yAxis = d3.axisLeft(yScale)
+                            .tickSize(-innerWidth); // 刻度长度
+            g.append('g')
+             .call(xAxis)
+             .attr('transform', `translate(0, ${innerHeight})`);
+
+            g.append('g')
+             .call(yAxis);
+            
+             
+            //  修改坐标系 样式
+            d3.selectAll('text')
+              .attr('font-size', '2em');
+
+            d3.selectAll('line')
+              .attr('stroke-opacity', 0.5)
+              .attr('stroke-dasharray', '2,2');
+
+            //  添加tips  需要单独引入 js 文件
+            const tip = d3.tip()
+                          .attr('class', 'tip-class')
+                          .offset([-10, 0])
+                          .html(d => `<span>${d.value}</span>`);
+            svg.call(tip);
+
+            
+            //  添加数据
+            g.append('g')
+             .selectAll('.reactNode')
+             .data(data)
+             .enter()  // 占位
+             .append('rect')
+             .on('mouseover', tip.show)  // TODO 事件 为什么必须得加到 过渡动画之前？？？
+             .on('mouseout', tip.hide)
+             .transition()
+             .duration(500)
+             .attr('class', 'bar')
+             .attr('fill', 'yellow')
+             .attr('height', (d, i) => yScale(0) - yScale(d.value)) // 说明下：yScale(0) 其实指的就是整个容器的高度 === innerHeight。为什么要这么写呢？因为是倒值 所以 value值越大转换成的真实值越小
+             .attr('width', xScale.bandwidth())
+             .attr('x', (d, i) => xScale(d.name))
+             .attr('y', (d, i) => yScale(d.value)) // 这个其实是基于左上角的圆点位置，需要充分理解 D3 坐标系 以及上面 转换值 的关系。
+             
+       
+        </script>
+        <style>
+            .tip-class{
+                line-height: 1;
+                font-weight: bold;
+                padding: 12px;
+                background: rgba(0, 0, 0, 0.8);
+                color: #fff;
+                border-radius: 2px;
+            }
+            .tip-class:after{
+                box-sizing: border-box;
+                display: inline;
+                font-size: 10px;
+                width: 100%;
+                line-height: 1;
+                color: rgba(0, 0, 0, 0.8);
+                content: "\25BC";
+                position: absolute;
+                text-align: center;
+            }
+            .tip-class.n:after {
+                margin: -1px 0 0 0;
+                top: 100%;
+                left: 0;
+            }
+            .bar:hover{
+                fill: red;
+            }
+        </style>
+    </body>
+</html>
