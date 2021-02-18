@@ -1,4 +1,85 @@
 <!DOCTYPE html>
 <html>
-     
+     <body>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <svg></svg>
+        <script>
+            const data = {
+               nodes: [
+                    {name: '中国'},
+                    {name: '福建'},
+                    {name: '四川'},
+                    {name: '河北'},
+                    {name: '山东'},
+                    {name: '厦门'},
+                    {name: '福州'},
+                    {name: '泉州'},
+                    {name: '成都'},
+                    {name: '重庆'},
+                    {name: '宜宾'},
+                    {name: '眉山'},
+                    {name: '邯郸'},
+                    {name: '保定'},
+                    {name: '青岛'}
+               ],
+               links: [
+                   {source: '中国', target: '福建', link: '属于'},
+                   {source: '中国', target: '四川', link: '属于'},
+                   {source: '中国', target: '河北', link: '属于'},
+                   {source: '中国', target: '山东', link: '属于'},
+                   {source: '福建', target: '厦门', link: '属于'},
+                   {source: '福建', target: '泉州', link: '属于'},
+                   {source: '福建', target: '福州', link: '属于'},
+                   {source: '四川', target: '成都', link: '属于'},
+                   {source: '四川', target: '重庆', link: '属于'},
+                   {source: '四川', target: '宜宾', link: '属于'},
+                   {source: '四川', target: '眉山', link: '属于'},
+                   {source: '河北', target: '保定', link: '属于'},
+                   {source: '河北', target: '邯郸', link: '属于'},
+                   {source: '山东', target: '青岛', link: '属于'}
+               ]
+            }
+            
+            const width = 1400;
+            const height = 600;
+            const nodes = data.nodes.map(d => Object.create(d));
+            const links = data.links.map(d => Object.create(d));
+            const simulation = d3.forceSimulation(nodes)   // forceSimulation 会把对象转成对应的值
+                .force("link", d3.forceLink(links).id(d => d.name))
+                .force("charge", d3.forceManyBody())
+                .force("center", d3.forceCenter(width / 2, height / 2));
+            
+            const svg = d3.select('svg').attr('viewBox', [0, 0, width, height]);
+
+            const link = svg.append('g')
+                .attr('stroke', '#999')
+                .attr('stroke-opacity', .6)
+            .selectAll('line')
+            .data(links)
+            .join('line')
+                .attr('stroke-width', 4.5);
+
+            const node = svg.append('g')
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 1.5)
+            .selectAll('circle')
+            .data(nodes)
+            .join('circle')
+                .attr('r', 8.5)
+                .attr('fill', 'red')
+            // .call()
+
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+            });
+        </script>
+     </body>
 </html>
