@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html>
      <body>
+         <!-- 
+             要实现的功能
+             1、显示完整图形 --- ok
+             2、节点可以拖拽 --- ok 可继续调整
+             3、link上有箭头 --- ok 
+             4、link 上也有相关文字显示
+             5、圆圈 上有相关文字显示
+             6、缩放
+             7、封装
+          -->
         <script src="https://d3js.org/d3.v6.min.js"></script>
         <svg></svg>
         <script>
@@ -42,23 +52,71 @@
             
             const width = 1400;
             const height = 600;
+            
+            // 拖拽事件
+            const drag = simulation => {
+                const dragStart = evt => {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    evt.subject.fx = evt.subject.x;
+                    evt.subject.fy = evt.subject.y;
+                };
+                const draged = evt => {
+                    console.log(evt);
+                    evt.subject.fx = evt.x;
+                    evt.subject.fy = evt.y;
+                };
+                const dragEnd = evt => {
+                    if (!event.active) simulation.alphaTarget(0);
+                    evt.subject.fx = null;
+                    evt.subject.fy = null;
+                };
+
+                return d3.drag()
+                        .on('start', dragStart)
+                        .on('drag', draged)
+                        .on('end', dragEnd);
+            }
+
+            // 初始化 node 和 links 数据
             const nodes = data.nodes.map(d => Object.create(d));
             const links = data.links.map(d => Object.create(d));
             const simulation = d3.forceSimulation(nodes)   // forceSimulation 会把对象转成对应的值
-                .force("link", d3.forceLink(links).id(d => d.name))
-                .force("charge", d3.forceManyBody())
+                .force("link", d3.forceLink(links).id(d => d.name).distance(100))  // distance 设置线条长度
+                .force("charge", d3.forceManyBody())    // 节点力的类型
                 .force("center", d3.forceCenter(width / 2, height / 2));
             
+                // 设置svg节点 
             const svg = d3.select('svg').attr('viewBox', [0, 0, width, height]);
 
+            // 添加 箭头 
+
+            svg.append('defs')
+            .append('marker')
+                .attr('viewBox', '-0 -5 10 10')
+                .attr('id', 'markerId')
+                .attr("refX", 20)
+                .attr("refY", 0)
+                .attr("orient", "auto")
+                .attr('markerWidth', 5.5)  // markerWidth 、markerHeight  设置的值都和 绑定值（line）得 stroke- 成比例关系
+                .attr('markerHeight', 5.5)
+                .attr('xoverflow','visible')
+            .append('svg:path')
+                .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                .attr('fill', '#999')
+                .style('stroke','none');
+
+
+            // 添加 link 并设置相关属性 
             const link = svg.append('g')
-                .attr('stroke', '#999')
-                .attr('stroke-opacity', .6)
             .selectAll('line')
             .data(links)
             .join('line')
-                .attr('stroke-width', 4.5);
+                .attr('stroke', '#999')
+                .attr('stroke-width', 1.5)
+                .attr('marker-end', `url(#markerId)`);
+                
 
+            // 设置 node 节点 并设置相关属性
             const node = svg.append('g')
                 .attr('stroke', '#fff')
                 .attr('stroke-width', 1.5)
@@ -67,8 +125,9 @@
             .join('circle')
                 .attr('r', 8.5)
                 .attr('fill', 'red')
-            // .call()
+            .call(drag(simulation))
 
+            // tick 节点位置修改后触发
             simulation.on('tick', () => {
                 link
                     .attr('x1', d => d.source.x)
