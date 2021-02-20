@@ -6,8 +6,8 @@
              1、显示完整图形 --- ok
              2、节点可以拖拽 --- ok 可继续调整
              3、link上有箭头 --- ok 
-             4、link 上也有相关文字显示
-             5、圆圈 上有相关文字显示
+             4、link 上也有相关文字显示 --- ok 待优化
+             5、圆圈 上有相关文字显示 --- ok 待优化
              6、缩放 --- ok
              7、circle 替换成 图片
              8、封装
@@ -108,40 +108,62 @@
 
             // 添加 link 并设置相关属性 
             const link = g.append('g')
+            .classed('lineBox', true)
             .selectAll('line')
             .data(links)
             .join('line')
                 .attr('stroke', '#999')
                 .attr('stroke-width', 1.5)
                 .attr('marker-end', `url(#markerId)`);
-                
+            
+            // link 上添加文字描述
+            const linkPath = g.append('g')
+            .classed('pathBox', true)
+            .selectAll('.linkPath')
+            .data(links)
+            .join('path')
+                .attr('id', (d, i) => `path${i}`);
+            
+            const linkText = g.append('g')
+            .classed('textBox', true)
+            .selectAll('.linkText')
+            .data(links)
+            .join('text')
+                .attr('id', (d, i) => `text${i}`)
+                .attr('fill', 'red');
+
+            linkText.append('textPath')
+                .attr('xlink:href', (d, i) => `#path${i}`)
+            .text( d => d.link);
 
             // 设置 node 节点 并设置相关属性
             const node = g.append('g')
+                .attr('class', 'nodeBox')
                 .attr('stroke', 'blue')
                 .attr('stroke-width', 1)
-            .selectAll('circle')
+            .selectAll('nodeG')
             .data(nodes)
-            .join('circle')
-                .attr('r', 8.5)
-                .attr('fill', 'red')
-            .call(drag(simulation))
+            .join('g');
 
+            node.append('circle')
+                .attr('r', 8.5)
+                .attr('fill', 'red');
+
+                // 添加 拖拽事件
+            node.call(drag(simulation));
+
+
+            // node 上添加文字描述
+            node.append('text')
+                .attr('dy', 4)
+                .attr('dx', -10)
+                .attr('font-size', 10)
+            .text(d => d.name);
 
             // 添加 缩放功能
             const zoomHandler = evt => g.attr('transform', evt.transform);
             svg.call(d3.zoom().on('zoom', zoomHandler));
             
-
-            // node 上添加文字描述
-            g.append('g')
-            .selectAll('.nodeText')
-            .data()
-            .join('text')
-                .attr()
-                .attr()
-                .attr()
-                .attr();
 
             // tick 节点位置修改后触发
             simulation.on('tick', () => {
@@ -151,9 +173,10 @@
                     .attr('x2', d => d.target.x)
                     .attr('y2', d => d.target.y);
 
-                node
-                    .attr('cx', d => d.x)
-                    .attr('cy', d => d.y);
+                node.attr('transform', d => `translate(${d.x}, ${d.y})`); // g 元素 不能使用 x、y
+
+                linkPath.attr('d', d => 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y);
+
             });
         </script>
      </body>
