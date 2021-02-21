@@ -10,7 +10,12 @@
              5、圆圈 上有相关文字显示 --- ok 待优化
              6、缩放 --- ok
              7、circle 替换成 图片
-             8、封装
+             8、添加点击当前节点高亮相关联节点，其他节点置灰
+             9、动态添加节点
+             10、封装
+
+             link 上文字如何占在线的中间位置（水平和垂直）且背景色为白色（挡住线条）？
+
           -->
         <script src="https://d3js.org/d3.v6.min.js"></script>
         <svg></svg>
@@ -51,133 +56,193 @@
                ]
             }
             
-            const width = 1400;
-            const height = 600;
-            
-            // 拖拽事件
-            const drag = simulation => {
-                const dragStart = evt => {
-                    if (!event.active) simulation.alphaTarget(0.3).restart();
-                    evt.subject.fx = evt.subject.x;
-                    evt.subject.fy = evt.subject.y;
-                };
-                const draged = evt => {
-                    evt.subject.fx = evt.x;
-                    evt.subject.fy = evt.y;
-                };
-                const dragEnd = evt => {
-                    if (!event.active) simulation.alphaTarget(0);
-                    evt.subject.fx = null;
-                    evt.subject.fy = null;
-                };
+            const init = data => {
+                const width = 1400;
+                const height = 600;
+                 // 初始化 node 和 links 数据
+                const nodes = data.nodes.map(d => Object.create(d));
+                const links = data.links.map(d => Object.create(d));
+                const { svg, g } = createGlobalG(width, height);
 
-                return d3.drag()
-                        .on('start', dragStart)
-                        .on('drag', draged)
-                        .on('end', dragEnd);
+                const simulation = simulationFn({ nodes, links, width, height });
+                
+                const link = createLink(links, g);
+                const node = createNode(nodes, g);
+                nodeAddText(node);
+                const linkPath = linkAddText(links, g);
+                linkAddMarker(link, g);
+                addZoom(svg, g);
+                addDrag(node, simulation);
+                setTick({ simulation, node, link, linkPath });
             }
 
-            // 初始化 node 和 links 数据
-            const nodes = data.nodes.map(d => Object.create(d));
-            const links = data.links.map(d => Object.create(d));
-            const simulation = d3.forceSimulation(nodes)   // forceSimulation 会把对象转成对应的值
-                .force("link", d3.forceLink(links).id(d => d.name).distance(100))  // distance 设置线条长度
+            /**
+             * 创建全局 G 元素
+             */
+             const createGlobalG = (width, height) => {
+                const svg = d3.select('svg').attr('viewBox', [0, 0, width, height]);
+                const g = svg.append('g');
+                return {
+                    svg,
+                    g
+                }
+            }
+
+            const simulationFn = ({ nodes, links, width, height }) => {
+                return d3.forceSimulation(nodes)   // forceSimulation 会把对象转成对应的值
+                .force("link", d3.forceLink(links).id(d => d.name).distance(d => 150))  // distance 设置线条长度
                 .force("charge", d3.forceManyBody())    // 节点力的类型
                 .force("center", d3.forceCenter(width / 2, height / 2));
-            
-                // 设置svg节点 
-            const svg = d3.select('svg').attr('viewBox', [0, 0, width, height]);
-            const g = svg.append('g');
+            }
 
-            // 添加 箭头 
-            g.append('defs')
-            .append('marker')
-                .attr('viewBox', '-0 -5 10 10')
-                .attr('id', 'markerId')
-                .attr("refX", 20)
-                .attr("refY", 0)
-                .attr('orient', 'auto')
-                .attr('markerWidth', 5.5)  // markerWidth 、markerHeight  设置的值都和 绑定值（line）得 stroke- 成比例关系
-                .attr('markerHeight', 5.5)
-                .attr('xoverflow','visible')
-            .append('svg:path')
-                .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
-                .attr('fill', '#999')
-                .style('stroke','none');
-
-
-            // 添加 link 并设置相关属性 
-            const link = g.append('g')
-            .classed('lineBox', true)
-            .selectAll('line')
-            .data(links)
-            .join('line')
-                .attr('stroke', '#999')
-                .attr('stroke-width', 1.5)
-                .attr('marker-end', `url(#markerId)`);
-            
-            // link 上添加文字描述
-            const linkPath = g.append('g')
-            .classed('pathBox', true)
-            .selectAll('.linkPath')
-            .data(links)
-            .join('path')
-                .attr('id', (d, i) => `path${i}`);
-            
-            const linkText = g.append('g')
-            .classed('textBox', true)
-            .selectAll('.linkText')
-            .data(links)
-            .join('text')
-                .attr('id', (d, i) => `text${i}`)
-                .attr('fill', 'red');
-
-            linkText.append('textPath')
-                .attr('xlink:href', (d, i) => `#path${i}`)
-            .text( d => d.link);
 
             // 设置 node 节点 并设置相关属性
-            const node = g.append('g')
-                .attr('class', 'nodeBox')
-                .attr('stroke', 'blue')
-                .attr('stroke-width', 1)
-            .selectAll('nodeG')
-            .data(nodes)
-            .join('g');
+            const createNode = (nodes, g) => {
+                const node = g.append('g')
+                    .attr('class', 'nodeBox')
+                    .attr('stroke', 'blue')
+                    .attr('stroke-width', 1)
+                .selectAll('nodeG')
+                .data(nodes)
+                .join('g');
 
-            node.append('circle')
-                .attr('r', 8.5)
-                .attr('fill', 'red');
-
-                // 添加 拖拽事件
-            node.call(drag(simulation));
-
-
+                node.append('circle')
+                    .attr('r', 20)
+                    .attr('fill', 'red');
+                return node;
+            }
+  
+            // 添加 link 并设置相关属性 
+            const createLink = (links, g) => {
+                const link = g.append('g')
+                .classed('lineBox', true)
+                .selectAll('line')
+                .data(links)
+                .join('line')
+                    .attr('stroke', '#999')
+                    .attr('stroke-width', 1.5);
+                return link;
+            }
+            
             // node 上添加文字描述
-            node.append('text')
-                .attr('dy', 4)
-                .attr('dx', -10)
-                .attr('font-size', 10)
-            .text(d => d.name);
+            const nodeAddText = node => {
+                node.append('text')
+                    .attr('dy', 4)
+                    .attr('dx', -10)
+                    .attr('font-size', 10)
+                    .attr('pointer-events', 'none')
+                .text(d => d.name);
+            }
+           
+            
+            // link 上添加文字描述
+            const linkAddText = (links, g) => {
+                const linkPath = g.append('g')
+                .classed('pathBox', true)
+                .selectAll('.linkPath')
+                .data(links)
+                .join('path')
+                    .attr('id', (d, i) => `path${i}`);
+                
+                const linkText = g.append('g')
+                .classed('textBox', true)
+                .selectAll('.linkText')
+                .data(links)
+                .join('text')
+                    // .attr('id', (d, i) => `text${i}`)
+                    .attr('pointer-events', 'none');
 
-            // 添加 缩放功能
-            const zoomHandler = evt => g.attr('transform', evt.transform);
-            svg.call(d3.zoom().on('zoom', zoomHandler));
+                linkText.append('textPath')
+                    .attr('xlink:href', (d, i) => `#path${i}`)
+                    .style('text-anchor', 'middle')
+                    .attr('startOffset', '50%')
+                    .attr('font-size', 10)
+                    .attr('fill', 'green')
+                .text( d => d.link);
+                return linkPath;
+            }
+
+            /**
+             * 添加 箭头 
+             */
+             const linkAddMarker = (link, g) => {
+                if(!link) {
+                    console.error('请先设置 link 节点');
+                    return;
+                }
+
+                g.append('defs')
+                .append('marker')
+                    .attr('viewBox', '-0 -5 10 10')
+                    .attr('id', 'markerId')
+                    .attr("refX", 33)
+                    .attr("refY", 0)
+                    .attr('orient', 'auto')
+                    .attr('markerWidth', 5.5)  // markerWidth 、markerHeight  设置的值都和 绑定值（line）得 stroke- 成比例关系
+                    .attr('markerHeight', 5.5)
+                    .attr('xoverflow','visible')
+                .append('svg:path')
+                    .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                    .attr('fill', '#999')
+                    .style('stroke','none');
+
+                link.attr('marker-end', `url(#markerId)`);
+            }
+
+            /**
+             * 添加 缩放功能
+             */
+             const addZoom = (svg, g) => {
+                const zoomHandler = evt => g.attr('transform', evt.transform);
+                svg.call(d3.zoom().on('zoom', zoomHandler));
+            }
             
 
-            // tick 节点位置修改后触发
-            simulation.on('tick', () => {
-                link
-                    .attr('x1', d => d.source.x)
-                    .attr('y1', d => d.source.y)
-                    .attr('x2', d => d.target.x)
-                    .attr('y2', d => d.target.y);
+            // 添加 拖拽事件
+            const addDrag = (node, simulation) => {
+                const drag = simulation => {
+                    const dragStart = evt => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        evt.subject.fx = evt.subject.x;
+                        evt.subject.fy = evt.subject.y;
+                    };
+                    const draged = evt => {
+                        evt.subject.fx = evt.x;
+                        evt.subject.fy = evt.y;
+                    };
+                    const dragEnd = evt => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        evt.subject.fx = null;
+                        evt.subject.fy = null;
+                    };
 
-                node.attr('transform', d => `translate(${d.x}, ${d.y})`); // g 元素 不能使用 x、y
+                    return d3.drag()
+                            .on('start', dragStart)
+                            .on('drag', draged)
+                            .on('end', dragEnd);
+                }
 
-                linkPath.attr('d', d => 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y);
+                node.call(drag(simulation));
+            }
 
-            });
+
+            // tick 动态修改所有元素位置
+            const setTick = ({ simulation, node, link, linkPath }) => {
+                simulation.on('tick', () => {
+                    link
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+
+                    node.attr('transform', d => `translate(${d.x}, ${d.y})`); // g 元素 不能使用 x、y
+
+                    // d的含义（绘制顺序）：M 可以理解为从哪个位置开始； L 是指画到那；Z是结束
+                    linkPath.attr('d', d => 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y);
+                });
+            }
+            
+            init(data);
         </script>
      </body>
 </html>
